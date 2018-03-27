@@ -32,9 +32,11 @@ modprobe vlan_mon
 echo "8021q" >> /etc/modules
 echo "ipoe" >> /etc/modules
 echo "vlan_mon" >> /etc/modules
-
-cp dictionary /usr/src/accel-ppp/accel-pppd/
+clear
+echo Copiando arquivos de configuracoes
+cd /accel-ppp/
+cp -r dictionary /usr/src/accel-ppp/accel-pppd/
 cp etc/accel-* /etc/
 cp init.d/accel-ppp /etc/init.d/
 chmod 775 /etc/init.d/accel-ppp
-./etc/init.d/accel-ppp start
+/etc/init.d/accel-ppp start
