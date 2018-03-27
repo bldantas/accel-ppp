@@ -1,0 +1,14 @@
+function username(pkt)
+	local circuit_id = pkt:agent_circuit_id()
+        local serial = string.sub(circuit_id, -12)
+	local vendor = string.sub(serial, 1,4)
+		
+	if vendor == "FHTT" then
+		return string.gsub(circuit_id, "FHTT", "FHTT-", 1)
+	elseif vendor == "ZTEG" then
+		return string.gsub(circuit_id, "ZTEG", "ZTEG-", 1)
+	else 
+		return circuit_id 
+	end	
+											 
+end

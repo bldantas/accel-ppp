@@ -1,0 +1,4 @@
+function username(pkt)
+	local mac=pkt:hdr("chaddr")
+	return mac
+end

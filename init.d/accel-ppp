@@ -1,0 +1,49 @@
+#!/bin/bash
+
+Accel_Start() {
+
+# Inicia o Accel-PPP
+/usr/src/accel-ppp/accel-pppd/accel-pppd -d -p /var/run/accel-pppd.pid -c /etc/accel-ppp.conf.ipoe
+echo "Ativando Accel-PPP Server"
+
+}
+
+Accel_Stop () {
+
+PID=$(cat /var/run/accel-pppd.pid)
+
+kill -9 $PID
+
+echo "Desativando Accel-PPP Server"
+
+}
+
+Accel_Restart () {
+ Accel_Stop
+ Accel_Start
+}
+
+case "$1" in
+start)
+    Accel_Start
+    ;;
+
+stop)
+    Accel_Stop
+    ;;
+
+restart)
+    Accel_Restart
+    ;;
+
+probe)
+    exit 0
+    ;;
+
+*)
+
+    echo $"Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit 1
