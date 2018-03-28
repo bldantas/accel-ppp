@@ -1,5 +1,0 @@
-wget http://191.243.78.11/ipoe/accel-ppp.lua.fh
-wget http://191.243.78.11/ipoe/accel-ppp.conf.ipoe
-wget http://191.243.78.11/ipoe/accel-ppp.lua
-wget http://191.243.78.11/ipoe/accel-ppp.lua.mac
-wget http://191.243.78.11/ipoe/dicionario.tar
