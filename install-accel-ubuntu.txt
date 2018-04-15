@@ -1,0 +1,216 @@
+#!/bin/sh
+###Instalando dependencias e Criando diretorios
+apt-get update
+apt-get -y install git vlan cmake libpcre3 libpcre3-dev libssl-dev liblua5.1 libsnmp-dev linux-headers-$(uname -r) 
+
+
+ACCELSRC=/usr/src/accel-ppp-code
+ACCELBUILD=/usr/src/accel-ppp
+
+if [ ! -d "$ACCELSRC" ]; then
+        git clone https://git.code.sf.net/p/accel-ppp/code /usr/src/accel-ppp-code
+else
+        cd /usr/src/accel-ppp-code
+        git pull
+fi
+if [ ! -d "$ACCELBUILD" ]; then
+        mkdir /usr/src/accel-ppp
+fi
+
+rm -rf /usr/src/accel-ppp/*
+cd /usr/src/accel-ppp/
+cmake -DRADIUS=TRUE -DSHAPER=TRUE -DBUILD_IPOE_DRIVER=TRUE -DBUILD_VLAN_MON_DRIVER=TRUE -DKDIR=/usr/src/linux-headers-`uname -r` -DNETSNMP=TRUE -DLUA=TRUE /usr/src/accel-ppp-code/
+
+make
+make install
+mkdir -p /lib/modules/$(uname -r)/kernel/extra
+cp ./drivers/ipoe/driver/ipoe.ko /lib/modules/$(uname -r)/kernel/extra
+cp ./drivers/vlan_mon/driver/vlan_mon.ko /lib/modules/$(uname -r)/kernel/extra
+depmod -a
+modprobe ipoe
+modprobe vlan_mon
+echo "8021q" >> /etc/modules
+echo "ipoe" >> /etc/modules
+echo "vlan_mon" >> /etc/modules
+
+cat <<EOF > /etc/systemd/system/accel-ppp.service
+[Unit]
+Description=Accel-PPP
+After=network.target
+Documentation=man:accel-ppp
+
+[Service]
+Type=forking
+LimitAS=infinity
+LimitRSS=infinity
+LimitCORE=infinity
+LimitNOFILE=65536
+PIDFile=/var/run/accel-pppd.pid
+ExecStart=/usr/local/sbin/accel-pppd -d -c /etc/accel-ppp.conf -p /var/run/accel-pppd.pid
+ExecReload=/usr/local/sbin/accel-pppd -d -c /etc/accel-ppp.conf -p /var/run/accel-pppd.pid
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+
+EOF
+
+systemctl enable accel-ppp.service
+
+cat <<EOF > /etc/accel-ppp.conf
+[modules]
+log_file
+ppp
+pppoe
+ipoe
+radius
+shaper
+auth_chap_md5
+vlan-mon
+ipv6pool
+ipv6_dhcp
+ippool
+ipv6_nd
+
+[core]
+log-error=/var/log/accel-ppp/core.log
+thread-count=4
+
+[log]
+log-file=/var/log/accel-ppp/accel-ppp.log
+log-emerg=/var/log/accel-ppp/emerg.log
+log-fail-file=/var/log/accel-ppp/auth-fail.log
+log-debug=/var/log/accel-ppp/debug.log
+color=1
+level=10
+
+[common]
+single-session=replace
+sid-case=upper
+sid-source=seq
+
+[dns]
+dns1=8.8.8.8
+dns2=8.8.4.4
+
+[cli]
+tcp=127.0.0.1:2001
+
+[ppp]
+#verbose=1
+min-mtu=1280
+mtu=1480
+mru=1480
+# carbon: ccp=0 allow connect from linux devices
+ccp=0
+check-ip=0
+#mppe=require
+ipv4=require
+ipv6=allow
+#ipv6-intf-id=0:0:0:1
+#ipv6-peer-intf-id=0:0:0:2
+#ipv6-accept-peer-intf-id=1
+lcp-echo-interval=20
+#lcp-echo-failure=3
+lcp-echo-timeout=120
+#unit-cache=1000
+
+[pppoe]
+verbose=1
+ac-name=accel01
+#service-name=pppoe
+#pado-delay=0
+#pado-delay=0,100:100,200:200,-1:500
+#ifname-in-sid=called-sid
+#tr101=1
+#padi-limit=0
+ip-pool=pppoe
+interface=IF_LAN
+
+[ipoe]
+verbose=5
+#noauth=1
+check-mac-change=0
+username=lua:username
+lua-file=/etc/accel-ppp.lua
+#lease-time=432000
+lease-time=21600
+#max-lease-time=864000
+max-lease-time=43200
+unit-cache=0
+proxy-arp=1
+attr-dhcp-client-ip=Framed-IP-Address
+gw-ip-address=10.24.0.1/22
+gw-ip-address=100.64.15.1/24
+#interface=re:enp6s0f1.301,mode=L2,shared=1,start=dhcpv4,ifcfg=1,ipv6=0
+#interface=re:enp4s0f1\.301\.([1-9]|[1-9][0-9]|[1-9][0-9]),mode=L2,shared=1,start=dhcpv4,ifcfg=1,ipv6=0
+#vlan-mon=enp4s0f1.301,1-4095
+interface=IF_LAN
+vlan-timeout=60
+ip-pool=pppoe
+
+[ipv6-pool]
+2001:db8:8030::/48,64
+delegate=2001:db8:8040::/48,56
+
+[ipv6-dhcp]
+verbose=5
+pref-lifetime=21600
+valid-lifetime=21600
+route-via-gw=1
+
+[ipv6-dns]
+2001:4860:4860::8888
+2001:4860:4860::8844
+
+[ip-pool]
+#attr=Framed-IP-Address
+gw-ip-address=100.64.0.1
+100.64.15.0/20,name=pppoe
+
+[radius]
+dictionary=/usr/local/share/accel-ppp/radius/dictionary
+nas-identifier=accel01
+nas-ip-address=IP_NAS
+gw-ip-address=100.64.0.1
+acct-interim-interval=300
+acct-timeout=10
+acct-delay-time=0
+interim-verbose=1
+server=IP_RADIUS,SECRET_RADIUS,auth-port=1812,acct-port=1813,req-limit=50,fail-timeout=0,max-fail=10,weight=1
+dae-server=IP_NAS:3799,SECRET_RADIUS
+verbose=1
+timeout=160
+acct-on=1
+
+[shaper]
+vendor=Cisco
+attr=Cisco-AVPair
+ifb=ifb0
+up-limiter=htb
+down-limiter=tbf
+EOF
+
+sed -i "s/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g" /etc/sysctl.conf
+sed -i "s/#net.ipv6.conf.all.forwarding=1/net.ipv6.conf.all.forwarding=1/g" /etc/sysctl.conf
+sysctl -p
+
+echo -n "IP DO NAS: "
+read IP_NAS
+echo -n "IP DO RADIUS: "
+read IP_RADIUS
+echo -n "SECRET DO RADIUS: "
+read SECRET_RADIUS
+echo -n "INTERFACE LAN: "
+read IF_LAN
+
+echo "/etc/accel-ppp.conf alterado."
+
+sed -i "s/IP_NAS/$IP_NAS/g" /etc/accel-ppp.conf 
+sed -i "s/IP_RADIUS/$IP_RADIUS/g" /etc/accel-ppp.conf 
+sed -i "s/SECRET_RADIUS/$SECRET_RADIUS/g" /etc/accel-ppp.conf 
+sed -i "s/IF_LAN/$IF_LAN/g" /etc/accel-ppp.conf
+
+
+systemctl start accel-ppp
+
