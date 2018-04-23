@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Script Firewall - SGP
+
+# Limpa Tabelas Ip tables
+echo Limpando tabelas iptables
+
+iptables -F
+iptables -t nat -F
+iptables -F
+iptables -t nat -F
+
+# NAT
+echo Ativando NAT para 100.64.15.0/20
+
+iptables -t nat -A POSTROUTING -s 100.64.15.0/20 -j MASQUERADE
+
+# REDIRECIONA CLIENTES BLOQUEADOS A PAG DE BLOQUEIO
+echo Ativando Redirecionamentos
+
+iptables -t nat -A PREROUTING -p tcp --dport 80 -d 143.0.220.20 -j ACCEPT
+iptables -t nat -A PREROUTING -s 10.24.0.0/22 -p tcp -m multiport --dport 80,443 -j DNAT --to 143.0.220.20:6403
+
+# LIBERA ACESSO AO DNS E SGP
+echo Liberando acesso ao DNS e Radius
+
+iptables -A FORWARD -d 143.0.220.0 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 143.0.220.20 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 143.0.220.27 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 8.8.8.8 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 8.8.4.4 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 189.38.95.95 -j ACCEPT
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 1.1.1.1 -j ACCEPT
+
+# DROP
+iptables -t filter -A FORWARD -s 10.24.0.0/22 -j DROP
