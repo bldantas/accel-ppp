@@ -33,6 +33,7 @@ dns2=8.8.8.8
 [cli]
 tcp=127.0.0.1:2001
 sessions-columns=ifname,username,ip,ip6,ip6-dp,type,state,uptime,calling-sid,rate-limit,rx-bytes,tx-bytes
+
 [ipoe]
 verbose=5
 #noauth=1
