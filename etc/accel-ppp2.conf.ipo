@@ -189,8 +189,8 @@ dictionary=/usr/local/share/accel-ppp/radius/dictionary
 nas-identifier=accel-ppp
 nas-ip-address=143.0.220.27
 gw-ip-address=192.168.100.1
-server=143.0.220.20,raioceleste,auth-port=1812,acct-port=1813,req-limit=50,fail-timeout=0,max-fail=10,weight=1
-dae-server=143.0.220.27:3799,raioceleste
+server=x.x.x.x,raioceleste,auth-port=1812,acct-port=1813,req-limit=50,fail-timeout=0,max-fail=10,weight=1
+dae-server=x.x.x.x:3799,password
 verbose=1
 #timeout=3
 #max-try=3
