@@ -24,7 +24,7 @@ iptables -t nat -A PREROUTING -s 10.24.0.0/22 -p tcp -m multiport --dport 80,443
 # LIBERA ACESSO AO DNS E SGP
 echo Liberando acesso ao DNS e Radius
 
-iptables -A FORWARD -d 143.0.220.0 -j ACCEPT
+iptables -A FORWARD -d 100.64.15.0 -j ACCEPT
 iptables -t filter -A FORWARD -s 10.24.0.0/22 -d x.x.x.x -j ACCEPT
 iptables -t filter -A FORWARD -s 10.24.0.0/22 -d x.x.x.x -j ACCEPT
 iptables -t filter -A FORWARD -s 10.24.0.0/22 -d 8.8.8.8 -j ACCEPT
